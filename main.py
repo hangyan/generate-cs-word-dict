@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-
+import json
 from time import sleep
 
 __author__ = 'Hang Yan'
 
 URL_PREFIX = "http://stackoverflow.com/tags?tab=popular&page="
 TOTAL_PAGE = 1427
-PAGE_LIST = range(1, TOTAL_PAGE + 1)
+
 PAR = 8
 
 
@@ -66,10 +65,7 @@ def get_tags(index):
     soup = get_soup(url)
     tags = soup.find_all("td", attrs={'class': 'tag-cell'})
     result = {
-        index: {
-            "done": False,
-            "data": []
-        }
+        index: []
     }
 
     data = []
@@ -77,8 +73,7 @@ def get_tags(index):
         tag = item.find('a').get_text()
         l = process_tag(tag)
         data.extend(l)
-    result[index]['data'] = uniq(data)
-    result[index]["done"] = True
+    result[index] = uniq(data)
     return result
 
 
@@ -88,24 +83,41 @@ def process(chunk, get_tags):
     return pool.map(get_tags, chunk)
 
 
+def load_last_state():
+    try:
+        with open('state.json') as json_file:
+            data = json.load(json_file)
+            return data['last_index'], data['old']
+    except:
+        pass
+    return 1, {}
+
+
+def save_current_state(index, data):
+    out = {
+        'last_index': index,
+        'old': data
+    }
+    with open('state.json', 'w') as outfile:
+        json.dump(out, outfile)
+
+
 def main():
-    all = {}
-    t = 0
-    for chunk in chunks(PAGE_LIST, PAR):
+    index, all = load_last_state()
+    print "Load from last index: {}".format(index)
+    for chunk in chunks(range(index, TOTAL_PAGE + 1), PAR):
         print "CHUNK: {}".format(chunk[0])
         try:
-            sleep(t)
-            result = process(chunk, get_tags)
-            t = 0
-        except Exception as e:
-            print "Oh,no...hide..."
-            sleep(5)
-            t = 1
+            sleep(1)
             result = process(chunk, get_tags)
 
-        for item in result:
-            for k, v in item.items():
-                all[k] = v['data']
+            for item in result:
+                for k, v in item.items():
+                    all[k] = v
+        except Exception as e:
+            print e
+            save_current_state(chunk[0], all)
+            return
     l = []
     for k, v in all.items():
         l.extend(v)
