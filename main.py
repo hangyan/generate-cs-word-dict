@@ -6,7 +6,7 @@ from time import sleep
 __author__ = 'Hang Yan'
 
 URL_PREFIX = "http://stackoverflow.com/tags?tab=popular&page="
-TOTAL_PAGE = 1427
+TOTAL_PAGE = 1275
 
 PAR = 8
 
